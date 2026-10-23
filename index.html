@@ -67,6 +67,9 @@ button:disabled{opacity:.6}
 .flagged .bubble{background:var(--flag);color:var(--danger);font-weight:600;outline:2px solid var(--danger)}
 .mtime{font-size:11px;color:var(--sub);margin:4px 8px 0;display:flex;gap:6px;align-items:center}
 .ftag{background:var(--danger);color:#fff;border-radius:99px;padding:0 7px;font-size:10px;font-weight:700}
+/* devices */
+.dev{cursor:pointer}
+.filterbar{display:flex;align-items:center;gap:10px;margin:0 0 14px}
 </style>
 </head>
 <body>
@@ -86,23 +89,29 @@ button:disabled{opacity:.6}
     <div class="card">
       <label style="margin-top:0">Email</label><input id="l_email" type="email" autocomplete="username" autocapitalize="off">
       <label>Password</label><input id="l_pass" type="password" autocomplete="current-password">
-      <div class="actions"><button id="l_go" style="flex:1">Login</button><button id="l_reset" class="alt">Firebase badlo</button></div>
+      <div class="actions"><button id="l_go" style="flex:1">Login</button></div>
       <div id="l_err" class="err"></div>
     </div>
   </div>
 
   <div id="main" hidden>
     <div class="hi">ChildGuard</div>
-    <p id="hi_sub">Settings apne hisaab se badlo</p>
+    <p id="hi_sub">Bachon ke phone yahan hain</p>
     <div class="tabs">
-      <button id="t_set" class="on">Settings</button>
+      <button id="t_dev" class="on">Bachay</button>
+      <button id="t_set">Settings</button>
       <button id="t_snap">Snapshots</button>
     </div>
 
-    <div id="p_set">
+    <div id="p_dev">
+      <div id="devices"></div>
+      <div id="dev_err" class="err"></div>
+    </div>
+
+    <div id="p_set" hidden>
       <div class="card lav">
         <h2>Bad words</h2>
-        <div class="meta">Ek line mein ek word ya phrase. Roman Urdu/English/Urdu sab chalega.</div>
+        <div class="meta">Ek line mein ek word ya phrase. Roman Urdu/English/Urdu sab chalega. Sab bachon ke phone par lagta hai.</div>
         <textarea id="words" placeholder="word1&#10;word2" style="margin-top:12px"></textarea>
       </div>
       <div class="card">
@@ -132,6 +141,10 @@ button:disabled{opacity:.6}
     </div>
 
     <div id="p_snap" hidden>
+      <div id="filterbar" class="filterbar" hidden>
+        <span class="meta">Showing: <b id="filter_name"></b></span>
+        <button id="filter_clear" class="alt sm">Sab dikhao</button>
+      </div>
       <div id="snaps"></div>
       <div id="snap_err" class="err"></div>
     </div>
@@ -148,10 +161,10 @@ const PRESETS = [
   ["Snapchat","com.snapchat.android"],["YouTube","com.google.android.youtube"],
   ["Facebook","com.facebook.katana"],["Messenger","com.facebook.orca"],["Telegram","org.telegram.messenger"]
 ];
-let db, auth, unsub = null;
+let db, auth, unsubSnap = null, unsubDev = null;
+let deviceNames = {};
+let activeDevice = null;
 
-function getConf(){ try { return JSON.parse(localStorage.getItem('cg_conf') || 'null'); } catch(e){ return null; } }
-function setConf(c){ try { if(c) localStorage.setItem('cg_conf', JSON.stringify(c)); else localStorage.removeItem('cg_conf'); } catch(e){} }
 function show(id){ ['setup','login','main'].forEach(s => $(s).hidden = (s !== id)); }
 
 function init(conf){
@@ -162,14 +175,7 @@ function init(conf){
   auth.onAuthStateChanged(u => { if(u){ show('main'); startMain(); } else { stopMain(); show('login'); } });
 }
 
-/* ---------- setup + login ---------- */
-$('s_save').onclick = () => {
-  const pid = $('s_pid').value.trim(), key = $('s_key').value.trim();
-  if(!pid || !key){ $('s_err').textContent = 'Dono cheezein bharo'; return; }
-  const c = { projectId: pid, apiKey: key }; setConf(c);
-  try { init(c); } catch(e){ $('s_err').textContent = e.message; }
-};
-$('l_reset').hidden = true;
+/* ---------- login ---------- */
 $('l_go').onclick = async () => {
   $('l_err').textContent = '';
   try { await auth.signInWithEmailAndPassword($('l_email').value.trim(), $('l_pass').value); }
@@ -178,12 +184,15 @@ $('l_go').onclick = async () => {
 $('logout').onclick = () => auth.signOut();
 
 /* ---------- tabs ---------- */
+const SUBS = { dev: 'Bachon ke phone yahan hain', set: 'Settings apne hisaab se badlo', snap: 'Bache ki flagged chats yahan hain' };
 function tab(which){
-  $('p_set').hidden = which !== 'set'; $('p_snap').hidden = which !== 'snap';
-  $('t_set').className = which === 'set' ? 'on' : ''; $('t_snap').className = which === 'snap' ? 'on' : '';
-  $('hi_sub').textContent = which === 'set' ? 'Settings apne hisaab se badlo' : 'Bache ki flagged chats yahan hain';
+  $('p_dev').hidden = which !== 'dev'; $('p_set').hidden = which !== 'set'; $('p_snap').hidden = which !== 'snap';
+  $('t_dev').className = which === 'dev' ? 'on' : '';
+  $('t_set').className = which === 'set' ? 'on' : '';
+  $('t_snap').className = which === 'snap' ? 'on' : '';
+  $('hi_sub').textContent = SUBS[which];
 }
-$('t_set').onclick = () => tab('set'); $('t_snap').onclick = () => tab('snap');
+$('t_dev').onclick = () => tab('dev'); $('t_set').onclick = () => tab('set'); $('t_snap').onclick = () => tab('snap');
 
 /* ---------- settings ---------- */
 const cfgRef = () => db.collection('config').doc('main');
@@ -210,7 +219,7 @@ async function loadCfg(){
     const c = d.exists ? d.data() : {};
     $('words').value = c.words || ''; $('before').value = c.beforeMin || 5;
     $('after').value = c.afterMin || 2; $('blocked').value = c.blocked || '';
-  } catch(e){ $('save_msg').innerHTML = ''; $('save_msg').className = 'err'; $('save_msg').textContent = e.message; }
+  } catch(e){ $('save_msg').className = 'err'; $('save_msg').textContent = e.message; }
   drawChips();
 }
 
@@ -227,9 +236,60 @@ $('save').onclick = async () => {
   } catch(e){ m.className = 'err'; m.textContent = e.message; }
 };
 
-/* ---------- snapshots ---------- */
-function mk(tag, cls, text){ const e = document.createElement(tag); if(cls) e.className = cls; if(text != null) e.textContent = text; return e; }
+/* steppers */
+document.querySelectorAll('.step').forEach(b => b.onclick = () => {
+  const i = $(b.dataset.t); i.value = Math.max(1, (parseInt(i.value) || 1) + Number(b.dataset.d));
+});
 
+/* ---------- devices ---------- */
+function mk(tag, cls, text){ const e = document.createElement(tag); if(cls) e.className = cls; if(text != null) e.textContent = text; return e; }
+function timeAgo(ms){
+  if(!ms) return 'kabhi nahi';
+  const s = Math.floor((Date.now() - Number(ms)) / 1000);
+  if(s < 90) return 'abhi abhi';
+  if(s < 3600) return Math.floor(s/60) + ' min pehle';
+  if(s < 86400) return Math.floor(s/3600) + ' ghante pehle';
+  return Math.floor(s/86400) + ' din pehle';
+}
+
+function openDevice(id, name){
+  activeDevice = { id, name };
+  $('filterbar').hidden = false;
+  $('filter_name').textContent = name;
+  tab('snap');
+  watchSnapshots();
+}
+$('filter_clear').onclick = () => { activeDevice = null; $('filterbar').hidden = true; watchSnapshots(); };
+
+function renderDevices(qs){
+  deviceNames = {};
+  const box = $('devices'); box.textContent = '';
+  if(qs.empty){ box.appendChild(mk('div', 'empty', 'Abhi koi phone register nahi hua.\nBache ke phone par app kholo.')); return; }
+  qs.forEach(doc => {
+    const d = doc.data();
+    const name = d.name || 'Naya phone';
+    deviceNames[doc.id] = name;
+    const card = mk('div', 'card dev');
+    const head = mk('div', 'shead');
+    head.appendChild(mk('div', 'av', (name || '?').trim().charAt(0).toUpperCase()));
+    const ht = mk('div', 'ht');
+    ht.appendChild(mk('div', 'st', name));
+    ht.appendChild(mk('div', 'meta', (d.model || '') + ' · ' + timeAgo(d.lastSeen)));
+    head.appendChild(ht);
+    const rename = mk('button', 'alt sm', 'Naam badlo');
+    rename.onclick = async (ev) => {
+      ev.stopPropagation();
+      const n = prompt('Is phone ka naam:', name);
+      if(n && n.trim()){ try { await db.collection('devices').doc(doc.id).set({ name: n.trim() }, { merge: true }); } catch(e){ alert(e.message); } }
+    };
+    head.appendChild(rename);
+    card.appendChild(head);
+    card.onclick = () => openDevice(doc.id, name);
+    box.appendChild(card);
+  });
+}
+
+/* ---------- snapshots ---------- */
 async function blockPkg(pkg){
   const d = await cfgRef().get(); const cur = d.exists ? d.data() : {};
   const l = lines(cur.blocked); if(!l.includes(pkg)) l.push(pkg);
@@ -288,7 +348,8 @@ function render(qs){
     head.appendChild(mk('div', 'av', (s.app || '?').charAt(0).toUpperCase()));
     const ht = mk('div', 'ht');
     ht.appendChild(mk('div', 'st', (s.app || '?') + (s.contact ? ' · ' + s.contact : '')));
-    ht.appendChild(mk('div', 'meta', (s.device || '') + (s.time ? ' · ' + new Date(Number(s.time)).toLocaleString([], {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '')));
+    const devName = deviceNames[s.deviceId] || s.device || '';
+    ht.appendChild(mk('div', 'meta', devName + (s.time ? ' · ' + new Date(Number(s.time)).toLocaleString([], {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '')));
     head.appendChild(ht);
     head.appendChild(mk('span', 'word', s.word || '?'));
     card.appendChild(head);
@@ -313,18 +374,21 @@ function render(qs){
   });
 }
 
-/* steppers */
-document.querySelectorAll('.step').forEach(b => b.onclick = () => {
-  const i = $(b.dataset.t); i.value = Math.max(1, (parseInt(i.value) || 1) + Number(b.dataset.d));
-});
+function watchSnapshots(){
+  if(unsubSnap) unsubSnap();
+  let q = db.collection('snapshots').orderBy('time', 'desc').limit(30);
+  if(activeDevice) q = db.collection('snapshots').where('deviceId', '==', activeDevice.id).orderBy('time', 'desc').limit(30);
+  unsubSnap = q.onSnapshot(render, e => { $('snap_err').textContent = e.message; });
+}
 
 function startMain(){
   loadCfg();
-  if(unsub) unsub();
-  unsub = db.collection('snapshots').orderBy('time', 'desc').limit(30)
-    .onSnapshot(render, e => { $('snap_err').textContent = e.message; });
+  if(unsubDev) unsubDev();
+  unsubDev = db.collection('devices').orderBy('lastSeen', 'desc')
+    .onSnapshot(renderDevices, e => { $('dev_err').textContent = e.message; });
+  watchSnapshots();
 }
-function stopMain(){ if(unsub){ unsub(); unsub = null; } }
+function stopMain(){ if(unsubSnap){ unsubSnap(); unsubSnap = null; } if(unsubDev){ unsubDev(); unsubDev = null; } }
 
 /* ---------- start ---------- */
 const conf = { projectId: "childguard-36e56", apiKey: "AIzaSyBRq7Co9B1fpWOXS-nq9jp-bak34ke9R-w" };
