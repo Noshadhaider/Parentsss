@@ -5,43 +5,70 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ChildGuard Parent</title>
 <style>
-:root{--bg:#f6f7f9;--card:#fff;--text:#1c1e21;--sub:#65676b;--line:#e2e4e8;--accent:#1a73e8;--danger:#d93025;--flag:#fde7e5}
-@media (prefers-color-scheme:dark){:root{--bg:#121316;--card:#1c1e23;--text:#e8eaed;--sub:#9aa0a6;--line:#2f3238;--accent:#8ab4f8;--danger:#f28b82;--flag:#3b1f1d}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-.wrap{max-width:620px;margin:0 auto;padding:14px}
-h1{font-size:20px;margin:6px 0 12px}
-h2{font-size:16px;margin:0 0 8px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
-label{display:block;font-size:13px;color:var(--sub);margin:10px 0 4px}
-input,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);font:inherit}
+:root{--bg1:#e4daf3;--bg2:#f3e6d8;--card:#fff;--text:#25262b;--sub:#8b8a96;--lav:#d9d3fb;--cream:#fdebb9;--dark:#25262b;--darkt:#fff;--chat:#f7f6fb;--bub:#fff;--mine:#d9d3fb;--mint:#25262b;--danger:#e5484d;--flag:#fde4e4;--ok:#188038}
+@media (prefers-color-scheme:dark){:root{--bg1:#1b1826;--bg2:#1f1b1a;--card:#26252d;--text:#f1f0f5;--sub:#9d9bab;--lav:#3b3568;--cream:#4a4126;--dark:#f1f0f5;--darkt:#25262b;--chat:#1d1c23;--bub:#2f2e38;--mine:#4a4390;--flag:#4a2326;--danger:#ff7b80;--ok:#6fd48a}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{min-height:100%;background:linear-gradient(160deg,var(--bg1),var(--bg2)) fixed}
+body{margin:0;color:var(--text);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:560px;margin:0 auto;padding:22px 16px 40px}
+.hi{font-size:34px;font-weight:600;letter-spacing:-.5px;margin:10px 4px 2px}
+.hi_sub,#hi_sub{color:var(--sub);margin:0 4px 18px}
+h2{font-size:17px;font-weight:600;margin:0 0 4px}
+.card{background:var(--card);border-radius:28px;padding:18px;margin-bottom:14px}
+.card.lav{background:var(--lav)}.card.cream{background:var(--cream)}
+label{display:block;font-size:13px;color:var(--sub);margin:12px 0 6px}
+input,textarea{width:100%;padding:13px 16px;border:0;border-radius:18px;background:var(--chat);color:var(--text);font:inherit;outline:0}
+.lav input,.lav textarea{background:rgba(255,255,255,.55);color:#25262b}
+.lav h2,.lav .meta,.cream h2,.cream .meta{color:#25262b}.lav .meta,.cream .meta{opacity:.65}
 textarea{min-height:110px;resize:vertical}
-.row{display:flex;gap:10px}.row>div{flex:1}
-button{padding:10px 14px;border:0;border-radius:8px;background:var(--accent);color:#fff;font:inherit;font-weight:600;cursor:pointer}
-button.alt{background:transparent;color:var(--accent);border:1px solid var(--line)}
-button.bad{background:var(--danger)}
-button.sm{padding:6px 10px;font-size:13px}
-.tabs{display:flex;gap:8px;margin-bottom:12px}
-.tabs button{flex:1;background:var(--card);color:var(--text);border:1px solid var(--line)}
-.tabs button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-.chip{padding:5px 10px;border-radius:99px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px;font-weight:500}
-.chip.on{background:var(--danger);color:#fff;border-color:var(--danger)}
+button{padding:13px 20px;border:0;border-radius:99px;background:var(--dark);color:var(--darkt);font:inherit;font-weight:600;cursor:pointer}
+button.alt{background:var(--chat);color:var(--text)}
+button.bad{background:var(--danger);color:#fff}
+button.sm{padding:9px 16px;font-size:14px}
+button:disabled{opacity:.6}
+.tabs{display:flex;gap:6px;padding:5px;background:rgba(255,255,255,.55);border-radius:99px;margin-bottom:18px}
+@media (prefers-color-scheme:dark){.tabs{background:rgba(255,255,255,.08)}}
+.tabs button{flex:1;background:transparent;color:var(--sub);padding:11px}
+.tabs button.on{background:var(--dark);color:var(--darkt)}
 .meta{font-size:13px;color:var(--sub)}
-.word{display:inline-block;background:var(--flag);color:var(--danger);padding:1px 8px;border-radius:6px;font-weight:600;font-size:13px}
-pre{margin:8px 0;padding:8px;background:var(--bg);border-radius:8px;white-space:pre-wrap;word-break:break-word;font:13px/1.6 ui-monospace,Menlo,monospace;max-height:320px;overflow:auto}
-pre .flag{display:block;background:var(--flag);color:var(--danger);font-weight:700}
-.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 4px}
+.chip{padding:9px 16px;font-size:14px;font-weight:500;background:rgba(255,255,255,.6);color:#25262b}
+.chip.on{background:#25262b;color:#fff}
+.row{display:flex;gap:12px}.row>div{flex:1}
+.timer{border-radius:24px;padding:16px 12px;text-align:center}
+.timer.t1{background:var(--cream);color:#25262b}.timer.t2{background:var(--dark);color:var(--darkt)}
+.timer .tl{font-size:13px;opacity:.7;min-height:2.6em;line-height:1.3}
+.timer .tv{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-top:6px}
+.timer input{background:transparent;color:inherit;text-align:center;font-size:34px;font-weight:600;padding:0;width:64px;-moz-appearance:textfield}
+.timer input::-webkit-outer-spin-button,.timer input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.timer .step{width:36px;height:36px;padding:0;border-radius:50%;font-size:20px;line-height:1;background:rgba(127,127,127,.22);color:inherit}
+.timer .unit{font-size:13px;opacity:.7;margin-top:2px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.actions.full button:first-child{flex:1}
 .err{color:var(--danger);font-size:13px;margin-top:8px}
-.ok{color:#188038;font-size:13px;margin-top:8px}
+.ok{color:var(--ok);font-size:14px;margin-top:10px;padding:0 6px}
+.empty{text-align:center;color:var(--sub);padding:40px 0}
 [hidden]{display:none!important}
+/* snapshot */
+.shead{display:flex;align-items:center;gap:12px}
+.av{width:44px;height:44px;border-radius:50%;background:var(--dark);color:var(--darkt);display:grid;place-items:center;font-weight:700;flex:none}
+.ht{flex:1;min-width:0}.st{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.word{background:var(--flag);color:var(--danger);padding:4px 12px;border-radius:99px;font-weight:600;font-size:13px;flex:none}
+.chat{background:var(--chat);border-radius:22px;padding:14px 12px;margin-top:14px;max-height:440px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.msg{display:flex;flex-direction:column;max-width:82%}
+.msg.them{align-self:flex-start;align-items:flex-start}
+.msg.me{align-self:flex-end;align-items:flex-end}
+.who{font-size:12px;color:var(--sub);margin:2px 8px 3px}
+.bubble{padding:10px 15px;border-radius:20px;white-space:pre-wrap;word-break:break-word;background:var(--bub)}
+.them .bubble{border-bottom-left-radius:6px}
+.me .bubble{background:var(--mine);border-bottom-right-radius:6px;color:var(--text)}
+.flagged .bubble{background:var(--flag);color:var(--danger);font-weight:600;outline:2px solid var(--danger)}
+.mtime{font-size:11px;color:var(--sub);margin:4px 8px 0;display:flex;gap:6px;align-items:center}
+.ftag{background:var(--danger);color:#fff;border-radius:99px;padding:0 7px;font-size:10px;font-weight:700}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>ChildGuard · Parent</h1>
-
-  <!-- Firebase setup (ek baar) -->
   <div id="setup" class="card" hidden>
     <h2>Firebase setup (ek baar)</h2>
     <div class="meta">Wohi Project ID aur API key daalo jo child app ki Config.kt mein hai.</div>
@@ -51,43 +78,51 @@ pre .flag{display:block;background:var(--flag);color:var(--danger);font-weight:7
     <div id="s_err" class="err"></div>
   </div>
 
-  <!-- Login -->
-  <div id="login" class="card" hidden>
-    <h2>Parent login</h2>
-    <label>Email</label><input id="l_email" type="email" autocomplete="username" autocapitalize="off">
-    <label>Password</label><input id="l_pass" type="password" autocomplete="current-password">
-    <div class="actions"><button id="l_go">Login</button><button id="l_reset" class="alt">Firebase badlo</button></div>
-    <div id="l_err" class="err"></div>
+  <div id="login" hidden>
+    <div class="hi">Hello Parent</div>
+    <p id="hi_sub0" style="color:var(--sub);margin:0 4px 18px">Bache ko safe rakhne ke liye login karo</p>
+    <div class="card">
+      <label style="margin-top:0">Email</label><input id="l_email" type="email" autocomplete="username" autocapitalize="off">
+      <label>Password</label><input id="l_pass" type="password" autocomplete="current-password">
+      <div class="actions"><button id="l_go" style="flex:1">Login</button><button id="l_reset" class="alt">Firebase badlo</button></div>
+      <div id="l_err" class="err"></div>
+    </div>
   </div>
 
-  <!-- Main -->
   <div id="main" hidden>
+    <div class="hi">ChildGuard</div>
+    <p id="hi_sub">Settings apne hisaab se badlo</p>
     <div class="tabs">
       <button id="t_set" class="on">Settings</button>
       <button id="t_snap">Snapshots</button>
     </div>
 
     <div id="p_set">
-      <div class="card">
+      <div class="card lav">
         <h2>Bad words</h2>
         <div class="meta">Ek line mein ek word ya phrase. Roman Urdu/English/Urdu sab chalega.</div>
-        <textarea id="words" placeholder="word1&#10;word2"></textarea>
+        <textarea id="words" placeholder="word1&#10;word2" style="margin-top:12px"></textarea>
       </div>
       <div class="card">
         <h2>Snapshot time</h2>
-        <div class="row">
-          <div><label>Flag se pehle (min)</label><input id="before" type="number" min="1" value="5"></div>
-          <div><label>Flag ke baad (min)</label><input id="after" type="number" min="1" value="2"></div>
+        <div class="meta">Flag hone par chat ka kitna hissa save ho.</div>
+        <div class="row" style="margin-top:14px">
+          <div class="timer t1"><div class="tl">Flag se pehle</div>
+            <div class="tv"><button class="step" data-t="before" data-d="-1">&minus;</button><input id="before" type="number" min="1" value="5" inputmode="numeric"><button class="step" data-t="before" data-d="1">+</button></div>
+            <div class="unit">minute</div></div>
+          <div class="timer t2"><div class="tl">Flag ke baad</div>
+            <div class="tv"><button class="step" data-t="after" data-d="-1">&minus;</button><input id="after" type="number" min="1" value="2" inputmode="numeric"><button class="step" data-t="after" data-d="1">+</button></div>
+            <div class="unit">minute</div></div>
         </div>
       </div>
-      <div class="card">
+      <div class="card cream">
         <h2>Blocked apps</h2>
         <div class="meta">Tap karke block/unblock. Ya neeche package name khud likho (ek line mein ek).</div>
         <div id="chips" class="chips"></div>
         <label>Package names</label>
         <textarea id="blocked" style="min-height:70px" placeholder="com.example.app"></textarea>
       </div>
-      <div class="actions">
+      <div class="actions full">
         <button id="save">Save settings</button>
         <button id="logout" class="alt">Logout</button>
       </div>
@@ -144,6 +179,7 @@ $('logout').onclick = () => auth.signOut();
 function tab(which){
   $('p_set').hidden = which !== 'set'; $('p_snap').hidden = which !== 'snap';
   $('t_set').className = which === 'set' ? 'on' : ''; $('t_snap').className = which === 'snap' ? 'on' : '';
+  $('hi_sub').textContent = which === 'set' ? 'Settings apne hisaab se badlo' : 'Bache ki flagged chats yahan hain';
 }
 $('t_set').onclick = () => tab('set'); $('t_snap').onclick = () => tab('snap');
 
@@ -199,26 +235,64 @@ async function blockPkg(pkg){
   $('blocked').value = l.join('\n'); drawChips();
 }
 
+const ME = /^(me|you|self|main|mai|mein|maine|child|bacha)$/i;
+function parseLine(line){
+  const flag = /<==\s*FLAG/i.test(line);
+  line = line.replace(/<==\s*FLAG.*$/i, '').trim();
+  let time = '', who = '', m;
+  m = line.match(/^[\[(]?(\d{1,2}:\d{2}(?::\d{2})?\s?(?:[AaPp]\.?[Mm]\.?)?)[\])]?\s*[-–—|]?\s*(.*)$/);
+  if(m){ time = m[1]; line = m[2]; }
+  else {
+    m = line.match(/^(.*?)\s*[\[(](\d{1,2}:\d{2}(?::\d{2})?\s?(?:[AaPp][Mm])?)[\])]\s*$/);
+    if(m){ line = m[1]; time = m[2]; }
+  }
+  m = line.match(/^([^:]{1,25}):\s+(.*)$/);
+  if(m){ who = m[1].trim(); line = m[2]; }
+  return { flag, time, who, text: line };
+}
+function buildChat(body){
+  const msgs = [];
+  body.split('\n').forEach(raw => {
+    if(!raw.trim()) return;
+    const p = parseLine(raw);
+    const prev = msgs[msgs.length - 1];
+    if(prev && !p.time && !p.who && !p.flag){ prev.text += '\n' + p.text; return; }
+    if(prev && !p.time && !p.who && p.flag){ prev.text += '\n' + p.text; prev.flag = true; return; }
+    msgs.push(p);
+  });
+  const chat = mk('div', 'chat'); let last = null;
+  msgs.forEach(p => {
+    const mine = ME.test(p.who);
+    const side = mine ? 'me' : 'them';
+    const grp = mk('div', 'msg ' + side + (p.flag ? ' flagged' : ''));
+    if(p.who && !mine && p.who !== last) grp.appendChild(mk('div', 'who', p.who));
+    const bub = mk('div', 'bubble', p.text);
+    grp.appendChild(bub);
+    const foot = mk('div', 'mtime');
+    if(p.flag) foot.appendChild(mk('span', 'ftag', 'FLAG'));
+    if(p.time) foot.appendChild(document.createTextNode(p.time));
+    if(foot.childNodes.length) grp.appendChild(foot);
+    chat.appendChild(grp); last = p.who;
+  });
+  return chat;
+}
+
 function render(qs){
   const box = $('snaps'); box.textContent = '';
-  if(qs.empty){ box.appendChild(mk('div', 'meta', 'Abhi koi snapshot nahi.')); return; }
+  if(qs.empty){ box.appendChild(mk('div', 'empty', 'Abhi koi snapshot nahi.')); return; }
   qs.forEach(doc => {
-    const s = doc.data(); const card = mk('div', 'card');
-    card.appendChild(mk('h2', '', (s.app || '?') + (s.contact ? ' · ' + s.contact : '')));
-    const meta = mk('div', 'meta');
-    const w = mk('span', 'word', s.word || '?');
-    meta.appendChild(w);
-    meta.appendChild(document.createTextNode('  ' + (s.device || '') + ' · ' + (s.time ? new Date(Number(s.time)).toLocaleString() : '')));
-    card.appendChild(meta);
+    const s = doc.data(); const card = mk('div', 'card snap');
+    const head = mk('div', 'shead');
+    head.appendChild(mk('div', 'av', (s.app || '?').charAt(0).toUpperCase()));
+    const ht = mk('div', 'ht');
+    ht.appendChild(mk('div', 'st', (s.app || '?') + (s.contact ? ' · ' + s.contact : '')));
+    ht.appendChild(mk('div', 'meta', (s.device || '') + (s.time ? ' · ' + new Date(Number(s.time)).toLocaleString([], {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '')));
+    head.appendChild(ht);
+    head.appendChild(mk('span', 'word', s.word || '?'));
+    card.appendChild(head);
 
     const body = (s.chat || '').split('\n\n').slice(1).join('\n\n');
-    const pre = mk('pre');
-    body.split('\n').forEach(line => {
-      if(!line) return;
-      const sp = mk('span', line.includes('<== FLAG') ? 'flag' : '', line + '\n');
-      pre.appendChild(sp);
-    });
-    card.appendChild(pre);
+    card.appendChild(buildChat(body));
 
     const act = mk('div', 'actions');
     if(s.pkg){
@@ -236,6 +310,11 @@ function render(qs){
     box.appendChild(card);
   });
 }
+
+/* steppers */
+document.querySelectorAll('.step').forEach(b => b.onclick = () => {
+  const i = $(b.dataset.t); i.value = Math.max(1, (parseInt(i.value) || 1) + Number(b.dataset.d));
+});
 
 function startMain(){
   loadCfg();
