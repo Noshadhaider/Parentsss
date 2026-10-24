@@ -101,6 +101,7 @@ button:disabled{opacity:.6}
       <button id="t_dev" class="on">Bachay</button>
       <button id="t_set">Settings</button>
       <button id="t_snap">Snapshots</button>
+      <button id="t_alert">Alerts</button>
     </div>
 
     <div id="p_dev">
@@ -148,6 +149,12 @@ button:disabled{opacity:.6}
       <div id="snaps"></div>
       <div id="snap_err" class="err"></div>
     </div>
+
+    <div id="p_alert" hidden>
+      <div class="meta" style="margin-bottom:10px">Jo number contacts mein save nahi hai, unse call, SMS ya WhatsApp chat yahan dikhti hai.</div>
+      <div id="alerts"></div>
+      <div id="alert_err" class="err"></div>
+    </div>
   </div>
 </div>
 
@@ -161,7 +168,7 @@ const PRESETS = [
   ["Snapchat","com.snapchat.android"],["YouTube","com.google.android.youtube"],
   ["Facebook","com.facebook.katana"],["Messenger","com.facebook.orca"],["Telegram","org.telegram.messenger"]
 ];
-let db, auth, unsubSnap = null, unsubDev = null;
+let db, auth, unsubSnap = null, unsubDev = null, unsubAlert = null;
 let deviceNames = {};
 let activeDevice = null;
 
@@ -184,15 +191,16 @@ $('l_go').onclick = async () => {
 $('logout').onclick = () => auth.signOut();
 
 /* ---------- tabs ---------- */
-const SUBS = { dev: 'Bachon ke phone yahan hain', set: 'Settings apne hisaab se badlo', snap: 'Bache ki flagged chats yahan hain' };
+const SUBS = { dev: 'Bachon ke phone yahan hain', set: 'Settings apne hisaab se badlo', snap: 'Bache ki flagged chats yahan hain', alert: 'Anjaan number se call/SMS/chat' };
 function tab(which){
-  $('p_dev').hidden = which !== 'dev'; $('p_set').hidden = which !== 'set'; $('p_snap').hidden = which !== 'snap';
+  $('p_dev').hidden = which !== 'dev'; $('p_set').hidden = which !== 'set'; $('p_snap').hidden = which !== 'snap'; $('p_alert').hidden = which !== 'alert';
   $('t_dev').className = which === 'dev' ? 'on' : '';
   $('t_set').className = which === 'set' ? 'on' : '';
   $('t_snap').className = which === 'snap' ? 'on' : '';
+  $('t_alert').className = which === 'alert' ? 'on' : '';
   $('hi_sub').textContent = SUBS[which];
 }
-$('t_dev').onclick = () => tab('dev'); $('t_set').onclick = () => tab('set'); $('t_snap').onclick = () => tab('snap');
+$('t_dev').onclick = () => tab('dev'); $('t_set').onclick = () => tab('set'); $('t_snap').onclick = () => tab('snap'); $('t_alert').onclick = () => tab('alert');
 
 /* ---------- settings ---------- */
 const cfgRef = () => db.collection('config').doc('main');
@@ -284,6 +292,37 @@ function renderDevices(qs){
     };
     head.appendChild(rename);
     card.appendChild(head);
+
+    const online = d.lastSeen && (Date.now() - Number(d.lastSeen)) < 90000;
+    let apps = {};
+    try { apps = JSON.parse(d.todayJson || '{}'); } catch(e){ apps = {}; }
+    const totalMin = Object.values(apps).reduce((s, a) => s + (a.min || 0), 0);
+    const usage = mk('div', 'meta', '');
+    usage.style.marginTop = '10px';
+    if(online && d.currentApp){
+      const mins = d.currentSince ? Math.max(0, Math.round((Date.now() - Number(d.currentSince)) / 60000)) : 0;
+      usage.appendChild(document.createTextNode('🟢 Abhi: ' + d.currentApp + (mins ? ' · ' + mins + ' min se' : '')));
+    } else {
+      usage.appendChild(document.createTextNode('⚪ Abhi offline'));
+    }
+    card.appendChild(usage);
+
+    const row2 = mk('div', 'meta');
+    row2.appendChild(document.createTextNode('Aaj: ' + Math.round(totalMin) + ' min total'));
+    card.appendChild(row2);
+
+    if(Object.keys(apps).length){
+      const btn = mk('button', 'alt sm', 'Aaj ki sari apps');
+      btn.style.marginTop = '10px';
+      btn.onclick = (ev) => {
+        ev.stopPropagation();
+        const list = Object.values(apps).sort((a, b) => (b.min || 0) - (a.min || 0))
+          .map(a => '• ' + a.label + ' — ' + Math.round(a.min) + ' min').join('\n');
+        alert(name + ' - aaj ka istemal:\n\n' + list);
+      };
+      card.appendChild(btn);
+    }
+
     card.onclick = () => openDevice(doc.id, name);
     box.appendChild(card);
   });
@@ -374,6 +413,36 @@ function render(qs){
   });
 }
 
+/* ---------- alerts (unknown call/sms/whatsapp) ---------- */
+const ALERT_ICON = { call: '📞', sms: '💬', whatsapp: '🟢' };
+const ALERT_LABEL = { call: 'Unknown call', sms: 'Unknown SMS', whatsapp: 'Unknown WhatsApp' };
+function renderAlerts(qs){
+  const box = $('alerts'); box.textContent = '';
+  if(qs.empty){ box.appendChild(mk('div', 'empty', 'Abhi koi alert nahi.')); return; }
+  qs.forEach(doc => {
+    const a = doc.data(); const card = mk('div', 'card');
+    const head = mk('div', 'shead');
+    head.appendChild(mk('div', 'av', ALERT_ICON[a.type] || '•'));
+    const ht = mk('div', 'ht');
+    ht.appendChild(mk('div', 'st', (ALERT_LABEL[a.type] || a.type) + ' · ' + (a.number || '?')));
+    const devName = deviceNames[a.deviceId] || '';
+    ht.appendChild(mk('div', 'meta', devName + (a.time ? ' · ' + new Date(Number(a.time)).toLocaleString([], {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '')));
+    head.appendChild(ht);
+    card.appendChild(head);
+    if(a.detail) card.appendChild(mk('div', 'meta', a.detail));
+    const del = mk('button', 'alt sm', 'Delete');
+    del.style.marginTop = '10px';
+    del.onclick = async () => { if(confirm('Ye alert delete karna hai?')){ try { await doc.ref.delete(); } catch(e){ alert(e.message); } } };
+    card.appendChild(del);
+    box.appendChild(card);
+  });
+}
+function watchAlerts(){
+  if(unsubAlert) unsubAlert();
+  unsubAlert = db.collection('alerts').orderBy('time', 'desc').limit(30)
+    .onSnapshot(renderAlerts, e => { $('alert_err').textContent = e.message; });
+}
+
 function watchSnapshots(){
   if(unsubSnap) unsubSnap();
   let q = db.collection('snapshots').orderBy('time', 'desc').limit(30);
@@ -387,8 +456,13 @@ function startMain(){
   unsubDev = db.collection('devices').orderBy('lastSeen', 'desc')
     .onSnapshot(renderDevices, e => { $('dev_err').textContent = e.message; });
   watchSnapshots();
+  watchAlerts();
 }
-function stopMain(){ if(unsubSnap){ unsubSnap(); unsubSnap = null; } if(unsubDev){ unsubDev(); unsubDev = null; } }
+function stopMain(){
+  if(unsubSnap){ unsubSnap(); unsubSnap = null; }
+  if(unsubDev){ unsubDev(); unsubDev = null; }
+  if(unsubAlert){ unsubAlert(); unsubAlert = null; }
+}
 
 /* ---------- start ---------- */
 const conf = { projectId: "childguard-36e56", apiKey: "AIzaSyBRq7Co9B1fpWOXS-nq9jp-bak34ke9R-w" };
