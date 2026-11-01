@@ -282,7 +282,7 @@ function renderDevices(qs){
     head.appendChild(mk('div', 'av', (name || '?').trim().charAt(0).toUpperCase()));
     const ht = mk('div', 'ht');
     ht.appendChild(mk('div', 'st', name));
-    ht.appendChild(mk('div', 'meta', (d.model || '') + ' · ' + timeAgo(d.lastSeen)));
+    ht.appendChild(mk('div', 'meta', (d.model || '') + ' · ' + timeAgo(d.phoneSeen || d.lastSeen)));
     head.appendChild(ht);
     const rename = mk('button', 'alt sm', 'Naam badlo');
     rename.onclick = async (ev) => {
@@ -293,15 +293,20 @@ function renderDevices(qs){
     head.appendChild(rename);
     card.appendChild(head);
 
-    const online = d.lastSeen && (Date.now() - Number(d.lastSeen)) < 90000;
+    const guardOn = d.a11y === true && d.lastSeen && (Date.now() - Number(d.lastSeen)) < 90000;
+    const phoneSeenAt = d.phoneSeen || d.lastSeen;
+    const phoneOn = phoneSeenAt && (Date.now() - Number(phoneSeenAt)) < 90000;
     let apps = {};
     try { apps = JSON.parse(d.todayJson || '{}'); } catch(e){ apps = {}; }
     const totalMin = Object.values(apps).reduce((s, a) => s + (a.min || 0), 0);
     const usage = mk('div', 'meta', '');
     usage.style.marginTop = '10px';
-    if(online && d.currentApp){
+    if(guardOn && d.currentApp){
       const mins = d.currentSince ? Math.max(0, Math.round((Date.now() - Number(d.currentSince)) / 60000)) : 0;
       usage.appendChild(document.createTextNode('🟢 Abhi: ' + d.currentApp + (mins ? ' · ' + mins + ' min se' : '')));
+    } else if(phoneOn){
+      usage.appendChild(document.createTextNode('🔴 Phone on hai, par message service band hai'));
+      usage.style.color = 'var(--danger)';
     } else {
       usage.appendChild(document.createTextNode('⚪ Abhi offline'));
     }
@@ -453,8 +458,13 @@ function watchSnapshots(){
 function startMain(){
   loadCfg();
   if(unsubDev) unsubDev();
-  unsubDev = db.collection('devices').orderBy('lastSeen', 'desc')
-    .onSnapshot(renderDevices, e => { $('dev_err').textContent = e.message; });
+  unsubDev = db.collection('devices')
+    .onSnapshot(qs => {
+      const docs = [];
+      qs.forEach(x => docs.push(x));
+      docs.sort((a, b) => Number(b.data().phoneSeen || b.data().lastSeen || 0) - Number(a.data().phoneSeen || a.data().lastSeen || 0));
+      renderDevices({ empty: docs.length === 0, forEach: f => docs.forEach(f) });
+    }, e => { $('dev_err').textContent = e.message; });
   watchSnapshots();
   watchAlerts();
 }
