@@ -397,4 +397,92 @@ function render(qs){
     head.appendChild(mk('div', 'av', (s.app || '?').charAt(0).toUpperCase()));
     const ht = mk('div', 'ht');
     ht.appendChild(mk('div', 'st', (s.app || '?') + (s.contact ? ' · ' + s.contact : '')));
-    const devName = deviceNames[s.deviceId] || s.device || 
+    const devName = deviceNames[s.deviceId] || s.device || '';
+    ht.appendChild(mk('div', 'meta', devName + (s.time ? ' · ' + new Date(Number(s.time)).toLocaleString([], {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '')));
+    head.appendChild(ht);
+    head.appendChild(mk('span', 'word', s.word || '?'));
+    card.appendChild(head);
+
+    const body = (s.chat || '').split('\n\n').slice(1).join('\n\n');
+    card.appendChild(buildChat(body));
+
+    const act = mk('div', 'actions');
+    if(s.pkg){
+      const b = mk('button', 'bad sm', 'Block ' + (s.app || 'app'));
+      b.onclick = async () => {
+        if(!confirm((s.app || s.pkg) + ' block karni hai?')) return;
+        try { await blockPkg(s.pkg); b.textContent = 'Blocked ✓'; b.disabled = true; } catch(e){ alert(e.message); }
+      };
+      act.appendChild(b);
+    }
+    const del = mk('button', 'alt sm', 'Delete');
+    del.onclick = async () => { if(confirm('Ye snapshot delete karna hai?')) { try { await doc.ref.delete(); } catch(e){ alert(e.message); } } };
+    act.appendChild(del);
+    card.appendChild(act);
+    box.appendChild(card);
+  });
+}
+
+/* ---------- alerts (unknown call/sms/whatsapp) ---------- */
+const ALERT_ICON = { call: '📞', sms: '💬', whatsapp: '🟢' };
+const ALERT_LABEL = { call: 'Unknown call', sms: 'Unknown SMS', whatsapp: 'Unknown WhatsApp' };
+function renderAlerts(qs){
+  const box = $('alerts'); box.textContent = '';
+  if(qs.empty){ box.appendChild(mk('div', 'empty', 'Abhi koi alert nahi.')); return; }
+  qs.forEach(doc => {
+    const a = doc.data(); const card = mk('div', 'card');
+    const head = mk('div', 'shead');
+    head.appendChild(mk('div', 'av', ALERT_ICON[a.type] || '•'));
+    const ht = mk('div', 'ht');
+    ht.appendChild(mk('div', 'st', (ALERT_LABEL[a.type] || a.type) + ' · ' + (a.number || '?')));
+    const devName = deviceNames[a.deviceId] || '';
+    ht.appendChild(mk('div', 'meta', devName + (a.time ? ' · ' + new Date(Number(a.time)).toLocaleString([], {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) : '')));
+    head.appendChild(ht);
+    card.appendChild(head);
+    if(a.detail) card.appendChild(mk('div', 'meta', a.detail));
+    const del = mk('button', 'alt sm', 'Delete');
+    del.style.marginTop = '10px';
+    del.onclick = async () => { if(confirm('Ye alert delete karna hai?')){ try { await doc.ref.delete(); } catch(e){ alert(e.message); } } };
+    card.appendChild(del);
+    box.appendChild(card);
+  });
+}
+function watchAlerts(){
+  if(unsubAlert) unsubAlert();
+  unsubAlert = db.collection('alerts').orderBy('time', 'desc').limit(30)
+    .onSnapshot(renderAlerts, e => { $('alert_err').textContent = e.message; });
+}
+
+function watchSnapshots(){
+  if(unsubSnap) unsubSnap();
+  let q = db.collection('snapshots').orderBy('time', 'desc').limit(30);
+  if(activeDevice) q = db.collection('snapshots').where('deviceId', '==', activeDevice.id).orderBy('time', 'desc').limit(30);
+  unsubSnap = q.onSnapshot(render, e => { $('snap_err').textContent = e.message; });
+}
+
+function startMain(){
+  loadCfg();
+  if(unsubDev) unsubDev();
+  unsubDev = db.collection('devices')
+    .onSnapshot(qs => {
+      const docs = [];
+      qs.forEach(x => docs.push(x));
+      docs.sort((a, b) => Number(b.data().phoneSeen || b.data().lastSeen || 0) - Number(a.data().phoneSeen || a.data().lastSeen || 0));
+      renderDevices({ empty: docs.length === 0, forEach: f => docs.forEach(f) });
+    }, e => { $('dev_err').textContent = e.message; });
+  watchSnapshots();
+  watchAlerts();
+}
+function stopMain(){
+  if(unsubSnap){ unsubSnap(); unsubSnap = null; }
+  if(unsubDev){ unsubDev(); unsubDev = null; }
+  if(unsubAlert){ unsubAlert(); unsubAlert = null; }
+}
+
+/* ---------- start ---------- */
+const conf = { projectId: "childguard-36e56", apiKey: "AIzaSyBRq7Co9B1fpWOXS-nq9jp-bak34ke9R-w" };
+if(conf && conf.apiKey && conf.projectId){ try { init(conf); } catch(e){ show('setup'); $('s_err').textContent = e.message; } }
+else show('setup');
+</script>
+</body>
+</html>
